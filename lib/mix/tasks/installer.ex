@@ -1,4 +1,4 @@
-defmodule Mix.Tasks.Desktop.Installer do
+defmodule Mix.Tasks.DesktopDeployment.Installer do
   use Mix.Task
   @moduledoc false
 
