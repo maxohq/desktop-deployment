@@ -76,7 +76,12 @@ defmodule Desktop.Deployment.Package.MacOS do
     # Maybe embedding Info.plist into the beam.smp
     with [beam_smp] <- wildcard(root, "**/*.smp") do
       oldbin = File.read!(beam_smp)
-      with [match] <- Regex.run(~r/<\!--PLIST_TEMPLATE_START_64f5fc2af15ab6092d25ede0fdc039e0789aa6e9.+PLIST_TEMPLATE_END_64f5fc2af15ab6092d25ede0fdc039e0789aa6e9-->/s, oldbin) do
+
+      with [match] <-
+             Regex.run(
+               ~r/<\!--PLIST_TEMPLATE_START_64f5fc2af15ab6092d25ede0fdc039e0789aa6e9.+PLIST_TEMPLATE_END_64f5fc2af15ab6092d25ede0fdc039e0789aa6e9-->/s,
+               oldbin
+             ) do
         size = byte_size(match)
         [_all, replacement] = Regex.run(~r/<plist[^>]*>(.+)<\/plist>/s, content)
         replacement = String.pad_trailing(replacement, size, " ")
@@ -277,6 +282,7 @@ defmodule Desktop.Deployment.Package.MacOS do
 
   defp do_find_deps(object) do
     cmd!("otool", ["-L", object])
+    |> IO.inspect(label: "Deps-#{object}")
     |> String.split("\n")
     |> tl()
     |> Enum.map(fn row ->
