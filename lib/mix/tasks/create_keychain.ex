@@ -1,6 +1,6 @@
 defmodule Mix.Tasks.DesktopDeployment.CreateKeychain do
   use Mix.Task
-  import DesktopDeployment.Package.MacOS
+  alias DesktopDeployment.Package.MacOS
   @moduledoc false
 
   @shortdoc "Creates a new keychain."
@@ -40,8 +40,8 @@ defmodule Mix.Tasks.DesktopDeployment.CreateKeychain do
 
     file = "tmp.pem"
     File.write!(file, pem)
-    uids = locate_uid(file) || raise "Could not locate UID in PEM"
-    maybe_import_pem(file, uids)
+    uids = MacOS.locate_uid(file) || raise "Could not locate UID in PEM"
+    MacOS.maybe_import_pem(file, uids)
 
     # https://stackoverflow.com/questions/39868578/security-codesign-in-sierra-keychain-ignores-access-control-settings-and-ui-p
     # https://github.com/lando/code-sign-action/blob/main/action.yml
