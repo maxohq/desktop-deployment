@@ -10,7 +10,7 @@ These mix tasks generate binary installers for your Elixir-Desktop project in co
 
 1. Add a new release to your project configuration that includes the `&DesktopDeployment.generate_installer/1` steps
 2. Add the `package: package()` configuration with your app packaging information. If you don't provide these, default values will be used.
-3. Run `mix desktop.installer` to generate the installer for your current OS
+3. Run `mix desktop_deployment.installer` to generate the installer for your current OS
 
 ```elixir
   def project do
