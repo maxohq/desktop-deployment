@@ -1,10 +1,11 @@
 defmodule Mix.Tasks.Desktop.Installer do
   use Mix.Task
-  # import Desktop.Deployment.Tooling
   @moduledoc false
 
   @shortdoc "Creates a platform specific installer package."
   def run(_args, config \\ Mix.Project.config()) do
+    IO.puts("******* Desktop.Installer ***********")
+
     release =
       Enum.find(config[:releases] || [], fn {_name, rel} ->
         steps = Keyword.get(rel, :steps, [])
