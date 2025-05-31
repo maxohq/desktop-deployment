@@ -131,7 +131,7 @@ defmodule DesktopDeployment.Tooling do
 
   def cmd_raw(cmd, args) do
     args = Enum.map(List.wrap(args), fn arg -> "#{arg}" end)
-    IO.puts("*** DESKTOP.RUN: #{cmd} #{Enum.join(args, " ")}")
+    IO.puts("==== DESKTOP.RUN: #{cmd} #{Enum.join(args, " ")}")
     {ret, status} = System.cmd(cmd, args)
     {String.trim_trailing(ret), status}
   end

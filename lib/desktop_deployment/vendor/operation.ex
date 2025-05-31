@@ -8,8 +8,17 @@ defmodule DesktopDeployment.Operation do
       require Logger
 
       def run(result, key, f) do
-        Logger.info("[#{__MODULE__}]: Running action #{inspect(key)}")
+        log("Running action #{inspect(key)}")
         DesktopDeployment.Operation.run(result, key, f)
+      end
+
+      def log(message) when is_binary(message) do
+        IO.puts("")
+        Logger.info("==== [#{__MODULE__}]: #{message}")
+      end
+
+      def log(message) do
+        log(inspect(message))
       end
     end
   end
