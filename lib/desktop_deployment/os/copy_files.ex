@@ -5,11 +5,11 @@ defmodule DesktopDeployment.Os.CopyFiles do
 
   def call(package) do
     Operation.new()
-    |> Operation.run(:common_files, fn -> copy_common_files(package) end)
-    |> Operation.run(:unix_files, fn ->
+    |> run(:common_files, fn -> copy_common_files(package) end)
+    |> run(:unix_files, fn ->
       copy_unix_files(package, Tooling.os() in [Macos, Linux])
     end)
-    |> Operation.run(:os_specific_files, fn ctx ->
+    |> run(:os_specific_files, fn ctx ->
       copy_os_specific_files(Tooling.os(), ctx.unix_files)
     end)
     |> respond()

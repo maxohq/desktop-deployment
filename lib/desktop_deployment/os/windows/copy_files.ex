@@ -5,7 +5,7 @@ defmodule DesktopDeployment.Os.Windows.CopyFiles do
 
   def call(pkg) do
     Operation.new()
-    |> Operation.run(:handle_windows, fn -> handle_windows(pkg) end)
+    |> run(:handle_windows, fn -> handle_windows(pkg) end)
     |> respond()
   end
 

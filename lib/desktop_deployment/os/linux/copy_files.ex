@@ -5,7 +5,7 @@ defmodule DesktopDeployment.Os.Linux.CopyFiles do
 
   def call(pkg) do
     Operation.new()
-    |> Operation.run(:handle_linux, fn -> handle_linux(pkg) end)
+    |> run(:handle_linux, fn -> handle_linux(pkg) end)
     |> respond()
   end
 

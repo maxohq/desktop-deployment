@@ -3,7 +3,7 @@ defmodule DesktopDeployment.Os.Windows.MakeRelease do
 
   def call(pkg) do
     Operation.new()
-    |> Operation.run(:first, fn -> first_action(pkg) end)
+    |> run(:first, fn -> first_action(pkg) end)
     |> IO.inspect()
     |> respond()
   end

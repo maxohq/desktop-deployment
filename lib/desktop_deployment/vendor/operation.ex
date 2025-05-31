@@ -6,7 +6,11 @@ defmodule DesktopDeployment.Operation do
       alias DesktopDeployment.Tooling
       alias DesktopDeployment.Operation
       require Logger
-      import DesktopDeployment.Operation, only: [run: 3]
+
+      def run(result, key, f) do
+        Logger.info("[#{__MODULE__}]: Running action #{inspect(key)}")
+        DesktopDeployment.Operation.run(result, key, f)
+      end
     end
   end
 

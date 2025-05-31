@@ -5,7 +5,7 @@ defmodule DesktopDeployment.Os.Macos.CopyFiles do
 
   def call(opts \\ []) do
     Operation.new()
-    |> Operation.run(:handle_macos, fn -> handle_macos(opts) end)
+    |> run(:handle_macos, fn -> handle_macos(opts) end)
     |> respond()
   end
 
