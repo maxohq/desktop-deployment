@@ -10,7 +10,7 @@ defmodule DesktopDeployment.Package.MacOS do
     # Importing dependend libraries
     libs = Tooling.wildcard(rel, "**/*.dylib") ++ Tooling.wildcard(rel, "**/*.so")
     for lib <- libs, do: Tooling.strip_symbols(lib)
-    deps = Tooling.find_all_deps(MacOS, libs)
+    deps = Tooling.find_all_deps(Macos, libs)
     for lib <- deps, do: Tooling.priv_import!(pkg, lib)
 
     pkg

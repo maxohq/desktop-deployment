@@ -77,8 +77,8 @@ defmodule DesktopDeployment.Tooling do
     is_library = Regex.match?(~r/\.(so|dylib|smp)($|\.)/, extname)
 
     cond do
-      os() == MacOS and is_library -> cmd!("strip", ["-x", "-S", file])
-      os() == MacOS and is_binary -> cmd!("strip", ["-u", "-r", file])
+      os() == Macos and is_library -> cmd!("strip", ["-x", "-S", file])
+      os() == Macos and is_binary -> cmd!("strip", ["-u", "-r", file])
       is_binary || is_library -> cmd!("strip", ["-s", file])
       true -> :ok
     end
@@ -110,7 +110,7 @@ defmodule DesktopDeployment.Tooling do
 
   def os() do
     case :os.type() do
-      {:unix, :darwin} -> MacOS
+      {:unix, :darwin} -> Macos
       {:unix, :linux} -> Linux
       {:win32, _} -> Windows
     end
@@ -163,7 +163,7 @@ defmodule DesktopDeployment.Tooling do
     result ++ find_all_deps(os, result, old_objects)
   end
 
-  def find_deps(MacOS, object) do
+  def find_deps(Macos, object) do
     cwd = File.cwd!()
 
     Package.MacOS.find_deps(object)
