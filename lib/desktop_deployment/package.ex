@@ -130,7 +130,7 @@ defmodule DesktopDeployment.Package do
   end
 
   defp copy_extra_files(os, %Package{release: %Mix.Release{} = rel} = pkg)
-       when os == Linux or os == MacOS do
+       when os in [Linux, MacOS] do
     [beam] = Tooling.wildcard(rel, "**/beam.smp")
     # Chaning emulator name
     [erl] = Tooling.wildcard(rel, "**/bin/erl")
