@@ -48,7 +48,7 @@ by adding `desktop_deployment` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:desktop_deployment, "~> 0.1", runtimes: false}
+    {:desktop_deployment, "~> 0.1", runtime: false}
   ]
 end
 ```
