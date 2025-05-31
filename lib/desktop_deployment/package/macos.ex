@@ -2,16 +2,16 @@ defmodule DesktopDeployment.Package.MacOS do
   @moduledoc """
   macOS specific deployment functions.
   """
-  import DesktopDeployment.Tooling
+  alias DesktopDeployment.Tooling
   alias DesktopDeployment.Package
   require Logger
 
   def import_extra_files(%Package{release: %Mix.Release{} = rel} = pkg) do
     # Importing dependend libraries
-    libs = wildcard(rel, "**/*.dylib") ++ wildcard(rel, "**/*.so")
-    for lib <- libs, do: strip_symbols(lib)
-    deps = find_all_deps(MacOS, libs)
-    for lib <- deps, do: priv_import!(pkg, lib)
+    libs = Tooling.wildcard(rel, "**/*.dylib") ++ Tooling.wildcard(rel, "**/*.so")
+    for lib <- libs, do: Tooling.strip_symbols(lib)
+    deps = Tooling.find_all_deps(MacOS, libs)
+    for lib <- deps, do: Tooling.priv_import!(pkg, lib)
 
     pkg
   end
@@ -27,7 +27,7 @@ defmodule DesktopDeployment.Package.MacOS do
 
     File.mkdir_p!(bindir)
 
-    content = eval_eex(Package.toolpath("rel/macosx/InfoPlist.strings.eex"), rel, pkg)
+    content = Tooling.eval_eex(Package.toolpath("rel/macosx/InfoPlist.strings.eex"), rel, pkg)
     utf8bom = :unicode.encoding_to_bom(:utf8)
 
     for lang <- ["en", "Base"] do
@@ -36,17 +36,17 @@ defmodule DesktopDeployment.Package.MacOS do
       File.write!(Path.join(langdir, "InfoPlist.strings"), utf8bom <> content)
     end
 
-    content = eval_eex(Package.toolpath("rel/macosx/Info.plist.eex"), rel, pkg)
+    content = Tooling.eval_eex(Package.toolpath("rel/macosx/Info.plist.eex"), rel, pkg)
     File.write!(Path.join(contents, "Info.plist"), content)
     File.write!(Path.join(contents, "PkgInfo"), "APPL????")
-    content_run = eval_eex(Package.toolpath("rel/linux/run.eex"), rel, pkg)
+    content_run = Tooling.eval_eex(Package.toolpath("rel/linux/run.eex"), rel, pkg)
     File.write!(Path.join(bindir, "run"), content_run)
     File.chmod!(Path.join(bindir, "run"), 0o755)
 
     File.ls!(path)
     |> Enum.each(fn file ->
       File.cp_r!(Path.join(path, file), Path.join(resources, file), fn src, dst ->
-        file_md5(src) != file_md5(dst)
+        Tooling.file_md5(src) != Tooling.file_md5(dst)
       end)
     end)
 
@@ -59,22 +59,22 @@ defmodule DesktopDeployment.Package.MacOS do
 
       for size <- [16, 32, 128, 256, 512] do
         outfile = Path.join(iconset, "icon_#{size}x#{size}.png")
-        cmd!("sips", ["-z", size, size, pkg.icon, "--out", outfile])
+        Tooling.cmd!("sips", ["-z", size, size, pkg.icon, "--out", outfile])
         outfile = Path.join(iconset, "icon_#{size}x#{size}@2.png")
-        cmd!("sips", ["-z", 2 * size, 2 * size, pkg.icon, "--out", outfile])
+        Tooling.cmd!("sips", ["-z", 2 * size, 2 * size, pkg.icon, "--out", outfile])
       end
 
       outfile = Path.join(iconset, "icon_512x512@2x.png")
-      cmd!("sips", ["-z", 1024, 1024, pkg.icon, "--out", outfile])
+      Tooling.cmd!("sips", ["-z", 1024, 1024, pkg.icon, "--out", outfile])
       File.mkdir_p!(Path.dirname(icon_path))
-      cmd!("iconutil", ["-c", "icns", iconset, "-o", icon_path])
+      Tooling.cmd!("iconutil", ["-c", "icns", iconset, "-o", icon_path])
     end
 
-    cp!(icon_path, resources)
+    Tooling.cp!(icon_path, resources)
     maybe_import_webview(pkg, contents)
 
     # Maybe embedding Info.plist into the beam.smp
-    with [beam_smp] <- wildcard(root, "**/*.smp") do
+    with [beam_smp] <- Tooling.wildcard(root, "**/*.smp") do
       oldbin = File.read!(beam_smp)
 
       with [match] <-
@@ -88,7 +88,7 @@ defmodule DesktopDeployment.Package.MacOS do
         bin = String.replace(oldbin, match, replacement)
         IO.puts("Embedding Info.plist into beam.smp[#{byte_size(oldbin)} -> #{byte_size(bin)}]")
         File.write!(beam_smp, bin)
-        cmd!("codesign", ["-s", "-", beam_smp])
+        Tooling.cmd!("codesign", ["-s", "-", beam_smp])
       end
     end
 
@@ -134,7 +134,7 @@ defmodule DesktopDeployment.Package.MacOS do
     tmp_file = out_file <> ".tmp.#{:rand.uniform(1_000_000_000)}.dmg"
     File.rm(out_file)
 
-    cmd!("hdiutil", [
+    Tooling.cmd!("hdiutil", [
       "create",
       "-srcfolder",
       app_root,
@@ -152,16 +152,16 @@ defmodule DesktopDeployment.Package.MacOS do
     volume = Path.join("/Volumes", pkg.name)
 
     if File.exists?(volume) do
-      cmd!("hdiutil", ["detach", volume])
+      Tooling.cmd!("hdiutil", ["detach", volume])
     end
 
-    cmd!("hdiutil", ["attach", tmp_file])
+    Tooling.cmd!("hdiutil", ["attach", tmp_file])
     # Adding application destination for dragging
-    cmd!("ln", ["-s", "/Applications", Path.join(volume, "Applications")])
+    Tooling.cmd!("ln", ["-s", "/Applications", Path.join(volume, "Applications")])
     # Adding styling
     background_dir = Path.join(volume, ".background")
     File.mkdir(background_dir)
-    cp!(Package.toolpath("rel/macosx/background.png"), background_dir)
+    Tooling.cp!(Package.toolpath("rel/macosx/background.png"), background_dir)
 
     # Future: auto generate proper installer icon
     # https://0day.work/parsing-the-ds_store-file-format/
@@ -176,8 +176,8 @@ defmodule DesktopDeployment.Package.MacOS do
     end
 
     # Creating final file
-    cmd!("hdiutil", ["detach", volume])
-    cmd!("hdiutil", ["convert", tmp_file, "-format", "ULFO", "-o", out_file])
+    Tooling.cmd!("hdiutil", ["detach", volume])
+    Tooling.cmd!("hdiutil", ["convert", tmp_file, "-format", "ULFO", "-o", out_file])
 
     File.rm!(tmp_file)
     out_file
@@ -281,7 +281,7 @@ defmodule DesktopDeployment.Package.MacOS do
   end
 
   defp do_find_deps(object) do
-    cmd!("otool", ["-L", object])
+    Tooling.cmd!("otool", ["-L", object])
     |> IO.inspect(label: "Deps-#{object}")
     |> String.split("\n")
     |> tl()
@@ -312,7 +312,7 @@ defmodule DesktopDeployment.Package.MacOS do
         framework = Regex.replace(~r"^.+/([^/]+\.framework)", dep, fn _, match -> match end)
         Path.join("Contents/Frameworks", framework)
       else
-        Path.join(["Contents/Resources", relative_priv(pkg), Path.basename(dep)])
+        Path.join(["Contents/Resources", Tooling.relative_priv(pkg), Path.basename(dep)])
       end
 
     depth =
@@ -330,7 +330,7 @@ defmodule DesktopDeployment.Package.MacOS do
   end
 
   def rewrite_dep(object, old_name, new_name) do
-    cmd!("install_name_tool", ["-change", old_name, new_name, object])
+    Tooling.cmd!("install_name_tool", ["-change", old_name, new_name, object])
   end
 
   def rewrite_deps(object, fun) do
@@ -386,7 +386,7 @@ defmodule DesktopDeployment.Package.MacOS do
 
   def maybe_import_pem(file, uids) do
     with nil <- do_find_developer_id(uids) do
-      cmd("security", ["import", file, "-k", keychain(), "-A"])
+      Tooling.cmd("security", ["import", file, "-k", keychain(), "-A"])
 
       with nil <- do_find_developer_id(uids) do
         raise "Failed to import PEM for uid #{inspect(uids)}"
@@ -395,7 +395,7 @@ defmodule DesktopDeployment.Package.MacOS do
   end
 
   defp find_identity() do
-    cmd("security", ["find-identity", "-v", keychain()])
+    Tooling.cmd("security", ["find-identity", "-v", keychain()])
   end
 
   @keychain_key {__MODULE__, :keychain}
@@ -407,17 +407,17 @@ defmodule DesktopDeployment.Package.MacOS do
     else
       keychain =
         case System.get_env("MACOS_KEYCHAIN") do
-          nil -> cmd("security", ["login-keychain"]) |> String.trim() |> String.trim("\"")
+          nil -> Tooling.cmd("security", ["login-keychain"]) |> String.trim() |> String.trim("\"")
           keychain -> keychain
         end
 
-      case cmd_raw("security", ["show-keychain-info", keychain]) do
+      case Tooling.cmd_raw("security", ["show-keychain-info", keychain]) do
         {_, 36} ->
           raise "Keychain #{keychain} is not unlocked run `security unlock-keychain #{keychain}` to unlock it and try again"
 
         {_, 50} ->
           Logger.info("Keychain #{keychain} does not exist, creating it")
-          cmd!("security", ["create-keychain", "-p", "", keychain])
+          Tooling.cmd!("security", ["create-keychain", "-p", "", keychain])
 
         {_, 0} ->
           :ok
@@ -454,7 +454,7 @@ defmodule DesktopDeployment.Package.MacOS do
         file
       )
       when is_binary(username) and is_binary(password) and is_binary(team_uid) do
-    cmd!("xcrun", [
+    Tooling.cmd!("xcrun", [
       "altool",
       "--notarize-app",
       "--primary-bundle-id",
@@ -486,14 +486,16 @@ defmodule DesktopDeployment.Package.MacOS do
   defp scan(_), do: []
 
   def find_binaries(root) do
-    libs = wildcard(root, "**/*.so") ++ wildcard(root, "**/*.dylib") ++ wildcard(root, "**/*.smp")
+    libs =
+      Tooling.wildcard(root, "**/*.so") ++
+        Tooling.wildcard(root, "**/*.dylib") ++ Tooling.wildcard(root, "**/*.smp")
 
     bins =
-      wildcard(root, "**")
+      Tooling.wildcard(root, "**")
       |> Enum.reject(fn file -> String.contains?(Path.basename(file), ".") end)
       |> Enum.filter(fn file -> Bitwise.band(0o100, File.lstat!(file).mode) != 0 end)
 
-    frameworks = wildcard(root, "**/Contents/MacOS/*")
+    frameworks = Tooling.wildcard(root, "**/Contents/MacOS/*")
 
     (bins ++ libs)
     |> Enum.filter(fn file -> File.lstat!(file).type == :regular end)
@@ -537,7 +539,7 @@ defmodule DesktopDeployment.Package.MacOS do
         "--options=runtime"
       ] ++ add_codesign_args(opts) ++ List.wrap(objects)
 
-    cmd!("codesign", args)
+    Tooling.cmd!("codesign", args)
   end
 
   defp add_codesign_args([{:entitlements, entitlements} | opts]) do

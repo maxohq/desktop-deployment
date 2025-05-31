@@ -1,7 +1,7 @@
 defmodule DesktopDeployment.Package do
   @moduledoc false
   alias DesktopDeployment.Package
-  import DesktopDeployment.Tooling
+  alias DesktopDeployment.Tooling
   require Logger
 
   defstruct name: "ElixirApp",
@@ -28,11 +28,11 @@ defmodule DesktopDeployment.Package do
 
   def copy_extra_files(%Package{release: %Mix.Release{path: rel_path, version: vsn} = rel} = pkg) do
     vm_args = toolpath("rel/vm.args.eex")
-    content = eval_eex(vm_args, rel, pkg)
+    content = Tooling.eval_eex(vm_args, rel, pkg)
     vm_args_out = Path.join([rel_path, "releases", vsn, "vm.args"])
     File.write!(vm_args_out, content)
 
-    copy_extra_files(os(), pkg)
+    copy_extra_files(Tooling.os(), pkg)
   end
 
   defp copy_extra_files(
@@ -40,23 +40,23 @@ defmodule DesktopDeployment.Package do
          %Package{release: %Mix.Release{path: rel_path, version: vsn} = rel} = pkg
        ) do
     # Windows renaming exectuable
-    [erl] = wildcard(rel, "**/erl.exe")
+    [erl] = Tooling.wildcard(rel, "**/erl.exe")
     new_name = Path.join(Path.dirname(erl), pkg.name <> ".exe")
     File.rename!(erl, new_name)
 
     # Updating icon
-    cmd!("magick", ["convert", "-resize", "64x64", pkg.icon, "icon.ico"])
+    Tooling.cmd!("magick", ["convert", "-resize", "64x64", pkg.icon, "icon.ico"])
 
-    priv_import!(pkg, "icon.ico", strip: false)
+    Tooling.priv_import!(pkg, "icon.ico", strip: false)
 
-    icon = Path.join(priv(pkg), "icon.ico")
-    content = eval_eex(toolpath("rel/win32/app.exe.manifest.eex"), rel, pkg)
+    icon = Path.join(Tooling.priv(pkg), "icon.ico")
+    content = Tooling.eval_eex(toolpath("rel/win32/app.exe.manifest.eex"), rel, pkg)
     build_root = Path.join([rel_path, "..", ".."]) |> Path.expand()
     File.write!(Path.join(build_root, "app.exe.manifest"), content)
 
     # fetch extra env file
     if File.exists?("rel/win32/app.env.eex") do
-      content = eval_eex("rel/win32/app.env.eex", rel, pkg)
+      content = Tooling.eval_eex("rel/win32/app.env.eex", rel, pkg)
       File.write!(new_name <> ".env", content)
     end
 
@@ -76,13 +76,13 @@ defmodule DesktopDeployment.Package do
       }
       |> Enum.flat_map(fn {key, value} -> ["--set-info", key, value] end)
 
-    [beam] = wildcard(rel, "**/beam.smp.dll")
-    [erlexec] = wildcard(rel, "**/erlexec.dll")
+    [beam] = Tooling.wildcard(rel, "**/beam.smp.dll")
+    [erlexec] = Tooling.wildcard(rel, "**/erlexec.dll")
 
     for bin <- [new_name, beam, erlexec] do
       # Unsafe binary removal of "Erlang", needs same length!
-      file_replace(bin, "Erlang", binary_part(pkg.name <> <<0, 0, 0, 0, 0, 0>>, 0, 6))
-      cmd!(toolpath("rel/win32/rcedit.exe"), ["/I", bin, icon])
+      Tooling.file_replace(bin, "Erlang", binary_part(pkg.name <> <<0, 0, 0, 0, 0, 0>>, 0, 6))
+      Tooling.cmd!(toolpath("rel/win32/rcedit.exe"), ["/I", bin, icon])
 
       :ok =
         Mix.Tasks.Pe.Update.run(
@@ -95,9 +95,9 @@ defmodule DesktopDeployment.Package do
         )
     end
 
-    [elixir] = wildcard(rel, "**/elixir.bat")
-    file_replace(elixir, "werl.exe", pkg.name <> ".exe")
-    file_replace(elixir, "erl.exe", pkg.name <> ".exe")
+    [elixir] = Tooling.wildcard(rel, "**/elixir.bat")
+    Tooling.file_replace(elixir, "werl.exe", pkg.name <> ".exe")
+    Tooling.file_replace(elixir, "erl.exe", pkg.name <> ".exe")
     pkg = %{pkg | priv: Map.put(pkg.priv, :executable_name, pkg.name <> ".exe")}
 
     redistributables = %{
@@ -107,23 +107,23 @@ defmodule DesktopDeployment.Package do
 
     for {redist, url} <- redistributables do
       if not File.exists?(redist) do
-        download_file(redist, url)
+        Tooling.download_file(redist, url)
       end
 
-      base_import!(rel, redist)
+      Tooling.base_import!(rel, redist)
     end
 
     # Windows has wxwidgets & openssl statically linked
     # dll_import!(rel, "C:\\msys64\\mingw64\\bin\\libgmp-10.dll")
 
-    wildcard(rel, "**/*.so")
+    Tooling.wildcard(rel, "**/*.so")
     |> Enum.each(fn name ->
       new_name = Path.join(Path.dirname(name), Path.basename(name, ".so") <> ".dll")
       File.rename!(name, new_name)
     end)
 
-    cp!(toolpath("rel/win32/run.vbs"), rel_path)
-    content = eval_eex(toolpath("rel/win32/run.bat.eex"), rel, pkg)
+    Tooling.cp!(toolpath("rel/win32/run.vbs"), rel_path)
+    content = Tooling.eval_eex(toolpath("rel/win32/run.bat.eex"), rel, pkg)
     File.write!(Path.join(rel_path, "run.bat"), content)
 
     pkg
@@ -131,25 +131,25 @@ defmodule DesktopDeployment.Package do
 
   defp copy_extra_files(os, %Package{release: %Mix.Release{} = rel} = pkg)
        when os == Linux or os == MacOS do
-    [beam] = wildcard(rel, "**/beam.smp")
+    [beam] = Tooling.wildcard(rel, "**/beam.smp")
     # Chaning emulator name
-    [erl] = wildcard(rel, "**/bin/erl")
-    file_replace(erl, "EMU=beam", "EMU=#{pkg.name}")
+    [erl] = Tooling.wildcard(rel, "**/bin/erl")
+    Tooling.file_replace(erl, "EMU=beam", "EMU=#{pkg.name}")
 
     # Trying to remove .smp ending
     # unsafe binary editing (confirmed to work on 23.x)
-    [erlexec] = wildcard(rel, "**/bin/erlexec")
-    file_replace(erlexec, ".smp", <<0, 0, 0, 0>>)
+    [erlexec] = Tooling.wildcard(rel, "**/bin/erlexec")
+    Tooling.file_replace(erlexec, ".smp", <<0, 0, 0, 0>>)
 
     # Figuring out the result of our edits
     # and renaming beam
     System.put_env("EMU", pkg.name)
-    name = cmd!(erlexec, ["-emu_name_exit"])
+    name = Tooling.cmd!(erlexec, ["-emu_name_exit"])
     pkg = %{pkg | priv: Map.put(pkg.priv, :executable_name, name)}
 
     # Unsafe binary removal of "Erlang", needs same length!
-    file_replace(beam, "Erlang", binary_part(pkg.name <> <<0, 0, 0, 0, 0, 0>>, 0, 6))
-    strip_symbols(beam)
+    Tooling.file_replace(beam, "Erlang", binary_part(pkg.name <> <<0, 0, 0, 0, 0, 0>>, 0, 6))
+    Tooling.strip_symbols(beam)
     File.rename!(beam, Path.join(Path.dirname(beam), name))
 
     if os == Linux do
@@ -160,7 +160,7 @@ defmodule DesktopDeployment.Package do
   end
 
   def create_installer(%Package{} = pkg) do
-    case os() do
+    case Tooling.os() do
       MacOS -> Package.MacOS.release(pkg)
       Linux -> linux_release(pkg)
       Windows -> windows_release(pkg)
@@ -181,9 +181,9 @@ defmodule DesktopDeployment.Package do
     {:ok, cur} = :file.get_cwd()
     :file.set_cwd(String.to_charlist(rel_path))
 
-    content = eval_eex(nsi_file, rel, pkg)
+    content = Tooling.eval_eex(nsi_file, rel, pkg)
     File.write!(Path.join(build_root, "app.nsi"), content)
-    cmd!("makensis", ["-NOCD", "-DVERSION=#{vsn}", Path.join(build_root, "app.nsi")])
+    Tooling.cmd!("makensis", ["-NOCD", "-DVERSION=#{vsn}", Path.join(build_root, "app.nsi")])
     :file.set_cwd(cur)
     outfile = "#{pkg.name}-#{vsn}.exe"
 
@@ -197,16 +197,16 @@ defmodule DesktopDeployment.Package do
 
   defp linux_release(%Package{release: %Mix.Release{path: rel_path, version: vsn} = rel} = pkg) do
     build_root = Path.join([rel_path, "..", ".."]) |> Path.expand()
-    arch = arch()
+    arch = Tooling.arch()
     out_file = Path.join(build_root, "#{pkg.name}-#{vsn}-linux-#{arch}.run")
 
     File.rm(out_file)
 
-    content = eval_eex(toolpath("rel/linux/install.eex"), rel, pkg)
+    content = Tooling.eval_eex(toolpath("rel/linux/install.eex"), rel, pkg)
     File.write!(Path.join(rel_path, "install"), content)
     File.chmod!(Path.join(rel_path, "install"), 0o755)
 
-    run_content = eval_eex(toolpath("rel/linux/run.eex"), rel, pkg)
+    run_content = Tooling.eval_eex(toolpath("rel/linux/run.eex"), rel, pkg)
     File.write!(Path.join(rel_path, pkg.name), run_content)
     File.chmod!(Path.join(rel_path, pkg.name), 0o755)
 
@@ -215,7 +215,7 @@ defmodule DesktopDeployment.Package do
 
     :file.set_cwd(String.to_charlist(rel_path))
 
-    cmd!(toolpath("rel/linux/makeself.sh"), [
+    Tooling.cmd!(toolpath("rel/linux/makeself.sh"), [
       "--xz",
       "--threads",
       "0",
@@ -239,7 +239,7 @@ defmodule DesktopDeployment.Package do
     ]
 
     to_sign =
-      (wildcard(root, "**/*.exe") ++ wildcard(root, "**/*.dll"))
+      (Tooling.wildcard(root, "**/*.exe") ++ Tooling.wildcard(root, "**/*.dll"))
       |> Enum.reject(fn filename -> String.downcase(Path.basename(filename)) in exceptions end)
 
     File.write!("codesign.log", Enum.join(to_sign, "\n"))
@@ -279,7 +279,7 @@ defmodule DesktopDeployment.Package do
   def win32_certificate_sign(app_name, cert_path, key_path, pass, filename) do
     # app.pem from sectigo cert `openssl x509 -in app_cert.p12 -inform DER -out app_cert.pem`
     # app_key.pem from sectigo
-    cmd!("osslsigncode", [
+    Tooling.cmd!("osslsigncode", [
       "sign",
       "-certs",
       cert_path,
@@ -303,7 +303,7 @@ defmodule DesktopDeployment.Package do
     # libeToken.so.10 from https://support.globalsign.com/ssl/ssl-certificates-installation/safenet-drivers
     # app.der from `pkcs11-tool --module /usr/lib/libeToken.so --id 0ff482e6569909c51ef69aabe88c659e89c32a27 --read-object --type cert --output-file app.der`
     # app.pem from `openssl x509 -in app.der -inform DER -out app.pem`
-    cmd!(
+    Tooling.cmd!(
       "osslsigncode",
       [
         "sign",

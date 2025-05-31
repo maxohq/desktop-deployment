@@ -2,7 +2,7 @@ defmodule DesktopDeployment.Package.Linux do
   @moduledoc """
   Linux specific deployment + packaging functions
   """
-  import DesktopDeployment.Tooling
+  alias DesktopDeployment.Tooling
   alias DesktopDeployment.Package
 
   def import_extra_files(%Package{release: %Mix.Release{} = rel} = pkg) do
@@ -10,10 +10,10 @@ defmodule DesktopDeployment.Package.Linux do
     import_redirector(pkg)
 
     # Importing dependend libraries
-    libs = wildcard(rel, "**/*.so")
-    for lib <- libs, do: strip_symbols(lib)
-    deps = find_all_deps(Linux, libs)
-    for lib <- deps, do: priv_import!(pkg, lib)
+    libs = Tooling.wildcard(rel, "**/*.so")
+    for lib <- libs, do: Tooling.strip_symbols(lib)
+    deps = Tooling.find_all_deps(Linux, libs)
+    for lib <- deps, do: Tooling.priv_import!(pkg, lib)
 
     import_pixbuf_loaders(pkg, deps)
     pkg = import_webkit(pkg, deps)
@@ -24,10 +24,10 @@ defmodule DesktopDeployment.Package.Linux do
     import_inotifywait(pkg)
 
     # Import dependencies of these loaders and modules
-    deps = find_all_deps(Linux, wildcard(rel, "**/*.so"))
+    deps = Tooling.find_all_deps(Linux, Tooling.wildcard(rel, "**/*.so"))
 
     for lib <- deps do
-      priv_import!(pkg, lib)
+      Tooling.priv_import!(pkg, lib)
     end
 
     import_nss(pkg, deps)
@@ -36,12 +36,12 @@ defmodule DesktopDeployment.Package.Linux do
 
   defp maybe_import_webview(%Package{} = pkg) do
     webview =
-      priv(pkg)
+      Tooling.priv(pkg)
       |> :filelib.fold_files(~c"^webview$", true, fn elem, acc -> [elem | acc] end, [])
       |> List.first()
 
     if webview != nil do
-      [executable] = wildcard(pkg.release, "**/#{pkg.priv.executable_name}")
+      [executable] = Tooling.wildcard(pkg.release, "**/#{pkg.priv.executable_name}")
       base = Path.basename(executable) |> Path.rootname()
       ext = Path.extname(executable)
       helper = Path.join(Path.dirname(executable), "#{base}_cef_helper#{ext}")
@@ -61,10 +61,10 @@ defmodule DesktopDeployment.Package.Linux do
         System.halt(1)
       end
 
-      erts_bin_import!(rel, bin)
+      Tooling.erts_bin_import!(rel, bin)
 
-      for lib <- find_deps(os(), bin) do
-        priv_import!(pkg, lib)
+      for lib <- Tooling.find_deps(Linux, bin) do
+        Tooling.priv_import!(pkg, lib)
       end
     end
   end
@@ -74,24 +74,27 @@ defmodule DesktopDeployment.Package.Linux do
       Enum.find(deps, fn lib -> String.starts_with?(Path.basename(lib), "libwebkit2gtk") end)
 
     if libwebkit != nil do
-      File.mkdir_p!(Path.join(priv(pkg), "libwebkit2gtk"))
+      File.mkdir_p!(Path.join(Tooling.priv(pkg), "libwebkit2gtk"))
       # Turns /la/la/lulu/libwebkit2gtk-4.0.so.37 into "webkit2gtk-4.0"
       [_, basename] = Regex.run(~r"/lib([^/]+)\.so", libwebkit)
-      files = wildcard(Path.dirname(libwebkit), "#{basename}/*")
+      files = Tooling.wildcard(Path.dirname(libwebkit), "#{basename}/*")
 
       for file <- files do
         if File.dir?(file) do
-          File.mkdir_p!(Path.join([priv(pkg), "libwebkit2gtk", Path.basename(file)]))
+          File.mkdir_p!(Path.join([Tooling.priv(pkg), "libwebkit2gtk", Path.basename(file)]))
 
-          for subfile <- wildcard(file, "*"),
-              do: priv_import!(pkg, subfile, extra_path: ["libwebkit2gtk/#{Path.basename(file)}"])
+          for subfile <- Tooling.wildcard(file, "*"),
+              do:
+                Tooling.priv_import!(pkg, subfile,
+                  extra_path: ["libwebkit2gtk/#{Path.basename(file)}"]
+                )
         else
-          priv_import!(pkg, file, extra_path: ["libwebkit2gtk"])
+          Tooling.priv_import!(pkg, file, extra_path: ["libwebkit2gtk"])
         end
       end
 
       redirection =
-        "#{Path.dirname(libwebkit)}/#{basename}/=$RELEASE_ROOT/#{Path.join(relative_priv(pkg), "libwebkit2gtk")}/"
+        "#{Path.dirname(libwebkit)}/#{basename}/=$RELEASE_ROOT/#{Path.join(Tooling.relative_priv(pkg), "libwebkit2gtk")}/"
 
       %Package{pkg | env: Map.put(pkg.env, "REDIRECTIONS", redirection)}
     else
@@ -104,9 +107,9 @@ defmodule DesktopDeployment.Package.Linux do
       Enum.find(deps, fn lib -> String.starts_with?(Path.basename(lib), "libgstreamer") end)
 
     if libgst != nil do
-      File.mkdir_p!(Path.join(priv(pkg), "gst/modules"))
-      files = wildcard(Path.dirname(libgst), "gstreamer-1.0/*.so")
-      for file <- files, do: priv_import!(pkg, file, extra_path: ["gst/modules"])
+      File.mkdir_p!(Path.join(Tooling.priv(pkg), "gst/modules"))
+      files = Tooling.wildcard(Path.dirname(libgst), "gstreamer-1.0/*.so")
+      for file <- files, do: Tooling.priv_import!(pkg, file, extra_path: ["gst/modules"])
     end
   end
 
@@ -123,19 +126,19 @@ defmodule DesktopDeployment.Package.Linux do
         Regex.scan(~r/[^"]+\.so/, loaders)
         |> List.flatten()
 
-      File.mkdir_p!(Path.join(priv(pkg), "immodules"))
-      for lib <- libs, do: priv_import!(pkg, lib, extra_path: ["immodules"])
+      File.mkdir_p!(Path.join(Tooling.priv(pkg), "immodules"))
+      for lib <- libs, do: Tooling.priv_import!(pkg, lib, extra_path: ["immodules"])
 
       loaders =
         Enum.reduce(libs, loaders, fn lib, loaders ->
           String.replace(
             loaders,
             lib,
-            Path.join([relative_priv(pkg), "immodules", Path.basename(lib)])
+            Path.join([Tooling.relative_priv(pkg), "immodules", Path.basename(lib)])
           )
         end)
 
-      File.write!(Path.join(priv(pkg), "immodules.cache"), loaders)
+      File.write!(Path.join(Tooling.priv(pkg), "immodules.cache"), loaders)
     end
   end
 
@@ -143,9 +146,9 @@ defmodule DesktopDeployment.Package.Linux do
     libnss = Enum.find(deps, fn lib -> String.starts_with?(Path.basename(lib), "libnss3") end)
 
     if libnss != nil do
-      File.mkdir_p!(Path.join(priv(pkg), "nss"))
-      files = wildcard(Path.dirname(libnss), "nss/*.so")
-      for file <- files, do: priv_import!(pkg, file, extra_path: ["nss"])
+      File.mkdir_p!(Path.join(Tooling.priv(pkg), "nss"))
+      files = Tooling.wildcard(Path.dirname(libnss), "nss/*.so")
+      for file <- files, do: Tooling.priv_import!(pkg, file, extra_path: ["nss"])
     end
   end
 
@@ -153,9 +156,9 @@ defmodule DesktopDeployment.Package.Linux do
     libgio = Enum.find(deps, fn lib -> String.starts_with?(Path.basename(lib), "libgio") end)
 
     if libgio != nil do
-      File.mkdir_p!(Path.join(priv(pkg), "gio/modules"))
-      files = wildcard(Path.dirname(libgio), "gio/modules/*")
-      for file <- files, do: priv_import!(pkg, file, extra_path: ["gio/modules"])
+      File.mkdir_p!(Path.join(Tooling.priv(pkg), "gio/modules"))
+      files = Tooling.wildcard(Path.dirname(libgio), "gio/modules/*")
+      for file <- files, do: Tooling.priv_import!(pkg, file, extra_path: ["gio/modules"])
     end
   end
 
@@ -175,19 +178,19 @@ defmodule DesktopDeployment.Package.Linux do
         |> Enum.map(fn str -> String.trim(str, "\"") end)
         |> Enum.filter(fn str -> String.ends_with?(str, ".so") end)
 
-      File.mkdir_p!(Path.join(priv(pkg), "pixbuf"))
-      for lib <- libs, do: priv_import!(pkg, lib, extra_path: ["pixbuf"])
+      File.mkdir_p!(Path.join(Tooling.priv(pkg), "pixbuf"))
+      for lib <- libs, do: Tooling.priv_import!(pkg, lib, extra_path: ["pixbuf"])
 
       loaders =
         Enum.reduce(libs, loaders, fn lib, loaders ->
           String.replace(
             loaders,
             lib,
-            Path.join([relative_priv(pkg), "pixbuf", Path.basename(lib)])
+            Path.join([Tooling.relative_priv(pkg), "pixbuf", Path.basename(lib)])
           )
         end)
 
-      File.write!(Path.join(priv(pkg), "pixbuf.cache"), loaders)
+      File.write!(Path.join(Tooling.priv(pkg), "pixbuf.cache"), loaders)
     end
   end
 
@@ -201,7 +204,7 @@ defmodule DesktopDeployment.Package.Linux do
       soname = "lib#{lib}.so.1"
 
       if not File.exists?(Path.join(build_root, soname)) do
-        cmd!("gcc", [
+        Tooling.cmd!("gcc", [
           "-Os",
           "-s",
           "-shared",
@@ -211,11 +214,11 @@ defmodule DesktopDeployment.Package.Linux do
           "-Wl,--version-script,#{libselinux_dummy}/src/lib/lib#{lib}.map",
           "-I#{libselinux_dummy}/src/lib/",
           "#{libselinux_dummy}/src/dummy/dummy.c"
-          | wildcard("#{libselinux_dummy}/src/lib/#{lib}/", "*.c")
+          | Tooling.wildcard("#{libselinux_dummy}/src/lib/#{lib}/", "*.c")
         ])
       end
 
-      priv_import!(pkg, Path.join(build_root, soname))
+      Tooling.priv_import!(pkg, Path.join(build_root, soname))
     end
   end
 
@@ -225,9 +228,9 @@ defmodule DesktopDeployment.Package.Linux do
     soname = "libredirector.so"
 
     if not File.exists?(Path.join(build_root, soname)) do
-      glib = cmd!("pkg-config", ["--cflags", "glib-2.0"]) |> String.split()
+      glib = Tooling.cmd!("pkg-config", ["--cflags", "glib-2.0"]) |> String.split()
 
-      cmd!("gcc", [
+      Tooling.cmd!("gcc", [
         "-D_GNU_SOURCE",
         "-O",
         "-Wall",
@@ -240,6 +243,6 @@ defmodule DesktopDeployment.Package.Linux do
       ])
     end
 
-    priv_import!(pkg, Path.join(build_root, soname))
+    Tooling.priv_import!(pkg, Path.join(build_root, soname))
   end
 end
