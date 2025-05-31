@@ -16,9 +16,7 @@ defmodule DesktopDeployment.Os.CopyFiles do
   end
 
   def respond(result) do
-    if elem(result, 0) == :error do
-      IO.inspect(result, label: "*** CopyFiles ERROR ***")
-    end
+    Operation.log_error(result)
 
     case result do
       {:ok, ctx} -> {:ok, ctx.common_files}
