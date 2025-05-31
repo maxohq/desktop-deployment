@@ -5,19 +5,21 @@ defmodule DesktopDeployment.Os.Linux.CopyFiles do
 
   def call(pkg) do
     Operation.new()
-    |> run(:handle_linux, fn -> handle_linux(pkg) end)
+    |> run(:handle_linux, fn -> first_action(pkg) end)
     |> respond()
   end
 
   defp respond(result) do
+    Operation.log_error(result, "Error in Linux.CopyFiles")
+
     case result do
-      {:ok, ctx} -> {:ok, ctx.handle_linux}
+      {:ok, ctx} -> {:ok, ctx.first_action}
       {:error, :operation, _} -> {:error, :internal_server_error}
       _ -> {:error, :internal_server_error}
     end
   end
 
-  def handle_linux(%Package{release: %Mix.Release{} = rel} = pkg) do
+  def first_action(%Package{release: %Mix.Release{} = rel} = pkg) do
     import_libse_mock(pkg)
     import_redirector(pkg)
 

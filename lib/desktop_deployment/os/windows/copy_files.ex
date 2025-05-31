@@ -10,6 +10,8 @@ defmodule DesktopDeployment.Os.Windows.CopyFiles do
   end
 
   defp respond(result) do
+    Operation.log_error(result, "Error in Windows.CopyFiles")
+
     case result do
       {:ok, ctx} -> {:ok, ctx.handle_windows}
       {:error, :operation, _} -> {:error, :internal_server_error}
