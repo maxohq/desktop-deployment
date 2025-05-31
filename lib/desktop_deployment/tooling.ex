@@ -17,8 +17,8 @@ defmodule DesktopDeployment.Tooling do
   end
 
   def wildcard(rel_path, path) do
-    :filelib.wildcard(Path.join(rel_path, path) |> String.to_charlist())
-    |> Enum.map(&List.to_string/1)
+    charlist = Path.join(rel_path, path) |> String.to_charlist()
+    :filelib.wildcard(charlist) |> Enum.map(&List.to_string/1)
   end
 
   def machine() do
