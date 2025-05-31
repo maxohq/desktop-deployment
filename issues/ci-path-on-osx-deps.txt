@@ -1,0 +1,51 @@
+------ ERROR message
+
+"********** DEPS_FOR: /Users/runner/work/exqlite/exqlite/_build/prod/lib/exqlite/priv/sqlite3_nif.so"
+==== DESKTOP.RUN: otool -L /Users/runner/work/exqlite/exqlite/_build/prod/lib/exqlite/priv/sqlite3_nif.so
+error: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/otool-classic: can't open file: /Users/runner/work/exqlite/exqlite/_build/prod/lib/exqlite/priv/sqlite3_nif.so (No such file or directory)
+** (MatchError) no match of right hand side value: {"", 1}
+    (desktop_deployment 1.0.0) lib/desktop_deployment/tooling.ex:123: DesktopDeployment.Tooling.cmd!/2
+    (desktop_deployment 1.0.0) lib/desktop_deployment/os/macos/common.ex:17: DesktopDeployment.Os.Macos.Common.do_find_deps/1
+    (desktop_deployment 1.0.0) lib/desktop_deployment/tooling.ex:168: DesktopDeployment.Tooling.find_deps/2
+    (elixir 1.18.3) lib/enum.ex:1722: anonymous fn/3 in Enum.map/2
+    (elixir 1.18.3) lib/enum.ex:4515: anonymous fn/3 in Enum.map/2
+    (elixir 1.18.3) lib/enum.ex:4968: Enumerable.List.reduce/3
+    (elixir 1.18.3) lib/enum.ex:4515: Enum.map/2
+    (desktop_deployment 1.0.0) lib/desktop_deployment/tooling.ex:156: DesktopDeployment.Tooling.find_all_deps/3
+
+
+---------- 
+
+common.ex desktop-deployment Why does this command return a path, that does not exist on my filesystem?  (OSX)
+
+
+$ otool -L /Users/roman/Desktop/work/prj.gutencat/gutencat/_build/prod/rel/default_release/lib/exqlite-0.30.1/priv/sqlite3_nif.so
+
+/Users/roman/Desktop/work/prj.gutencat/gutencat/_build/prod/rel/default_release/lib/exqlite-0.30.1/priv/sqlite3_nif.so:
+        /Users/runner/work/exqlite/exqlite/_build/prod/lib/exqlite/priv/sqlite3_nif.so (compatibility version 0.0.0, current version 0.0.0)
+        /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1345.120.2)
+
+--------- ANSWER
+
+The `otool -L` command is showing you the **install name** (or **ID**) of the dynamic library, not necessarily where it currently exists on your filesystem. This is a common source of confusion with macOS dynamic libraries.
+
+In your output:
+```
+/Users/roman/Desktop/work/prj.gutencat/gutencat/_build/prod/rel/default_release/lib/exqlite-0.30.1/priv/sqlite3_nif.so:
+        /Users/runner/work/exqlite/exqlite/_build/prod/lib/exqlite/priv/sqlite3_nif.so (compatibility version 0.0.0, current version 0.0.0)
+```
+
+The first line shows where the file actually exists on your system, but the second line shows the **install name** that was baked into the library when it was compiled - which appears to be from a CI/build environment (`/Users/runner/work/exqlite/exqlite/...`).
+
+This typically happens when:
+1. The library was built on a different machine (like a CI server)
+2. The library's install name wasn't properly updated when it was moved/copied
+3. The build process didn't set the correct install name for the final deployment location
+
+To fix this, you would typically use `install_name_tool` to update the install name:
+
+```bash
+install_name_tool -id /Users/roman/Desktop/work/prj.gutencat/gutencat/_build/prod/rel/default_release/lib/exqlite-0.30.1/priv/sqlite3_nif.so /Users/roman/Desktop/work/prj.gutencat/gutencat/_build/prod/rel/default_release/lib/exqlite-0.30.1/priv/sqlite3_nif.so
+```
+
+This is likely why your `find_deps` function in the code has logic to handle and filter dependencies - it needs to deal with these kinds of path mismatches that are common in macOS dynamic library deployment.

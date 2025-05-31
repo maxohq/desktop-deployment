@@ -12,8 +12,9 @@ defmodule DesktopDeployment.Os.Macos.Common do
   end
 
   defp do_find_deps(object) do
+    IO.inspect("********** DEPS_FOR: #{object}")
+
     Tooling.cmd!("otool", ["-L", object])
-    |> IO.inspect(label: "Deps-#{object}")
     |> String.split("\n")
     |> tl()
     |> Enum.map(fn row ->
