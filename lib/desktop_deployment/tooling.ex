@@ -1,5 +1,5 @@
-defmodule Desktop.Deployment.Tooling do
-  alias Desktop.Deployment.Package
+defmodule DesktopDeployment.Tooling do
+  alias DesktopDeployment.Package
   @moduledoc false
 
   def file_replace(file, from, to) do

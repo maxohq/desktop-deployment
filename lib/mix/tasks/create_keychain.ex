@@ -1,6 +1,6 @@
-defmodule Mix.Tasks.Desktop.CreateKeychain do
+defmodule Mix.Tasks.DesktopDeployment.CreateKeychain do
   use Mix.Task
-  import Desktop.Deployment.Package.MacOS
+  import DesktopDeployment.Package.MacOS
   @moduledoc false
 
   @shortdoc "Creates a new keychain."
@@ -34,7 +34,7 @@ defmodule Mix.Tasks.Desktop.CreateKeychain do
     security(["unlock-keychain", "-p", pass, name])
     security(["set-keychain-settings", "-t", "3600", "-u", name])
 
-    for cert <- Desktop.Deployment.Tooling.wildcard(mac_tools, "*.pem") do
+    for cert <- DesktopDeployment.Tooling.wildcard(mac_tools, "*.pem") do
       security(["import", cert, "-k", name, "-A"])
     end
 

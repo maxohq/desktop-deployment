@@ -2,7 +2,7 @@
 set -e
 pushd `dirname $0` > /dev/null
 ulimit -n 10000
-<%= if Desktop.Deployment.Tooling.os() == MacOS do %>
+<%= if DesktopDeployment.Tooling.os() == MacOS do %>
 export RELEASE_ROOT=`pwd -P`/../Resources
 if [ -z "$1" ]; then
     set -- start "$@"
@@ -29,7 +29,7 @@ REL_VSN_DIR="$RELEASE_ROOT/releases/$RELEASE_VSN"
 
 # Replacement for . env.sh
 export RELEASE_NAME="<%= @release.name %>"
-<%= if Desktop.Deployment.Tooling.os() == MacOS do %>
+<%= if DesktopDeployment.Tooling.os() == MacOS do %>
 export HEART_COMMAND="open -a <%= @package.name %> -W"
 <% else %>
 export HEART_COMMAND="$RELEASE_ROOT/<%= @package.name %> $RELEASE_COMMAND"

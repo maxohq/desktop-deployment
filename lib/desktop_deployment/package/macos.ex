@@ -1,9 +1,9 @@
-defmodule Desktop.Deployment.Package.MacOS do
+defmodule DesktopDeployment.Package.MacOS do
   @moduledoc """
   macOS specific deployment functions.
   """
-  import Desktop.Deployment.Tooling
-  alias Desktop.Deployment.Package
+  import DesktopDeployment.Tooling
+  alias DesktopDeployment.Package
   require Logger
 
   def import_extra_files(%Package{release: %Mix.Release{} = rel} = pkg) do
@@ -437,7 +437,7 @@ defmodule Desktop.Deployment.Package.MacOS do
   end
 
   def notarize(file) do
-    notarize(Desktop.Deployment.package(), default_creds(), file)
+    notarize(DesktopDeployment.package(), default_creds(), file)
   end
 
   def default_creds() do

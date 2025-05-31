@@ -1,5 +1,5 @@
-defmodule Desktop.Deployment do
-  alias Desktop.Deployment.Package
+defmodule DesktopDeployment do
+  alias DesktopDeployment.Package
   require Logger
   @moduledoc false
 
@@ -9,7 +9,7 @@ defmodule Desktop.Deployment do
   def generate_installer(%Mix.Release{} = rel) do
     if Mix.env() != :prod do
       IO.puts("""
-        Desktop.Deployment can only build MIX_ENV=prod releases.
+        DesktopDeployment can only build MIX_ENV=prod releases.
 
         Please use `MIX_ENV=prod mix release` instead.
       """)

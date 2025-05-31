@@ -1,4 +1,4 @@
-defmodule Desktop.Deployment.MixProject do
+defmodule DesktopDeployment.MixProject do
   use Mix.Project
 
   @version "1.0.0"

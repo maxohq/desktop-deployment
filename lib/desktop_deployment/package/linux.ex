@@ -1,9 +1,9 @@
-defmodule Desktop.Deployment.Package.Linux do
+defmodule DesktopDeployment.Package.Linux do
   @moduledoc """
   Linux specific deployment + packaging functions
   """
-  import Desktop.Deployment.Tooling
-  alias Desktop.Deployment.Package
+  import DesktopDeployment.Tooling
+  alias DesktopDeployment.Package
 
   def import_extra_files(%Package{release: %Mix.Release{} = rel} = pkg) do
     import_libse_mock(pkg)

@@ -9,13 +9,13 @@ defmodule Mix.Tasks.Desktop.Installer do
     release =
       Enum.find(config[:releases] || [], fn {_name, rel} ->
         steps = Keyword.get(rel, :steps, [])
-        Enum.member?(steps, &Desktop.Deployment.generate_installer/1)
+        Enum.member?(steps, &DesktopDeployment.generate_installer/1)
       end)
 
     if release == nil do
       IO.puts("""
         Desktop.Installer couldn't find a release with steps configured
-        to include the Deployment task `&Desktop.Deployment.generate_installer/1`.
+        to include the Deployment task `&DesktopDeployment.generate_installer/1`.
 
         Add the `generate_installer/1` callback at least to one of your
         release configurations in your mix.exs:
@@ -25,7 +25,7 @@ defmodule Mix.Tasks.Desktop.Installer do
           [
             releases: [
               default: [
-                steps: [:assemble, &Desktop.Deployment.generate_installer/1]
+                steps: [:assemble, &DesktopDeployment.generate_installer/1]
               ]
             ]
           ]

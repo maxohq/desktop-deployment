@@ -1,7 +1,7 @@
-defmodule Desktop.Deployment.Package do
+defmodule DesktopDeployment.Package do
   @moduledoc false
-  alias Desktop.Deployment.Package
-  import Desktop.Deployment.Tooling
+  alias DesktopDeployment.Package
+  import DesktopDeployment.Tooling
   require Logger
 
   defstruct name: "ElixirApp",
