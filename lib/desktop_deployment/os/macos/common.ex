@@ -2,6 +2,30 @@ defmodule DesktopDeployment.Os.Macos.Common do
   alias DesktopDeployment.Tooling
   require Logger
 
+  def find_deps(object) do
+    # otool -L can't handle filenames such as "webview (Alerts)"
+    if String.ends_with?(object, ")") do
+      []
+    else
+      do_find_deps(object)
+    end
+  end
+
+  defp do_find_deps(object) do
+    Tooling.cmd!("otool", ["-L", object])
+    |> IO.inspect(label: "Deps-#{object}")
+    |> String.split("\n")
+    |> tl()
+    |> Enum.map(fn row ->
+      # There can be spaces in lib names so splitting on space is not good enough
+      case String.split(row, "(compatibility") do
+        [path | _] -> String.trim(path) |> String.trim(":")
+        _other -> nil
+      end
+    end)
+    |> Enum.filter(&is_binary/1)
+  end
+
   def locate_uid(pem_filename) do
     cert = File.read!(pem_filename)
     cert_der = List.keyfind!(:public_key.pem_decode(cert), :Certificate, 0)

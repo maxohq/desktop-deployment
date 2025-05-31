@@ -273,30 +273,6 @@ defmodule DesktopDeployment.Os.Macos.MakeRelease do
     pkg
   end
 
-  def find_deps(object) do
-    # otool -L can't handle filenames such as "webview (Alerts)"
-    if String.ends_with?(object, ")") do
-      []
-    else
-      do_find_deps(object)
-    end
-  end
-
-  defp do_find_deps(object) do
-    Tooling.cmd!("otool", ["-L", object])
-    |> IO.inspect(label: "Deps-#{object}")
-    |> String.split("\n")
-    |> tl()
-    |> Enum.map(fn row ->
-      # There can be spaces in lib names so splitting on space is not good enough
-      case String.split(row, "(compatibility") do
-        [path | _] -> String.trim(path) |> String.trim(":")
-        _other -> nil
-      end
-    end)
-    |> Enum.filter(&is_binary/1)
-  end
-
   defp should_rewrite?(bin, dep) do
     String.starts_with?(dep, "/usr/local/opt/") or String.starts_with?(dep, "/Users/") or
       (String.starts_with?(dep, "@executable_path") and
@@ -336,7 +312,7 @@ defmodule DesktopDeployment.Os.Macos.MakeRelease do
   end
 
   def rewrite_deps(object, fun) do
-    find_deps(object)
+    DesktopDeployment.Os.Macos.Common.find_deps(object)
     |> Enum.map(fn old_name ->
       with new_name when is_binary(new_name) <- fun.(old_name) do
         rewrite_dep(object, old_name, new_name)

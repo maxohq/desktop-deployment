@@ -1,5 +1,4 @@
 defmodule DesktopDeployment.Tooling do
-  alias DesktopDeployment.Package
   @moduledoc false
 
   def file_replace(file, from, to) do
@@ -166,7 +165,7 @@ defmodule DesktopDeployment.Tooling do
   def find_deps(Macos, object) do
     cwd = File.cwd!()
 
-    Package.MacOS.find_deps(object)
+    DesktopDeployment.Os.Macos.Common.find_deps(object)
     |> Enum.filter(fn lib ->
       (String.starts_with?(lib, "/usr/local/opt/") or String.starts_with?(lib, "/Users/")) and
         not String.starts_with?(lib, cwd)
