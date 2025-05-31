@@ -21,9 +21,15 @@ defmodule DesktopDeployment.Os.Macos.CopyFiles do
 
   defp handle_macos(%Package{release: %Mix.Release{} = rel} = pkg) do
     # Importing dependend libraries
+
     libs = Tooling.wildcard(rel, "**/*.dylib") ++ Tooling.wildcard(rel, "**/*.so")
+    log("Found libs: #{inspect(libs)}")
     for lib <- libs, do: Tooling.strip_symbols(lib)
+
+    log("Finding All Deps")
     deps = Tooling.find_all_deps(Macos, libs)
+
+    log("Importing All Deps")
     for lib <- deps, do: Tooling.priv_import!(pkg, lib)
 
     pkg |> Result.ok()
