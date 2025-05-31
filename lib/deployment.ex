@@ -3,22 +3,9 @@ defmodule Desktop.Deployment do
   require Logger
   @moduledoc false
 
-  def package(rel \\ nil) do
-    config = Mix.Project.config()
-
-    case config[:package] do
-      nil ->
-        Logger.warning(
-          "There is no package config defined. Using the generic Elixir App descriptions."
-        )
-
-        default_package(rel)
-
-      map ->
-        struct!(default_package(rel), map)
-    end
-  end
-
+  @doc """
+  THE MAIN FUNCTION, entry-point
+  """
   def generate_installer(%Mix.Release{} = rel) do
     if Mix.env() != :prod do
       IO.puts("""
@@ -48,6 +35,22 @@ defmodule Desktop.Deployment do
     end
 
     package.release
+  end
+
+  def package(rel \\ nil) do
+    config = Mix.Project.config()
+
+    case config[:package] do
+      nil ->
+        Logger.warning(
+          "There is no package config defined. Using the generic Elixir App descriptions."
+        )
+
+        default_package(rel)
+
+      map ->
+        struct!(default_package(rel), map)
+    end
   end
 
   def default_package(rel) do
