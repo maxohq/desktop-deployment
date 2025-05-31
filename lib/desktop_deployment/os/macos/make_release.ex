@@ -29,7 +29,7 @@ defmodule DesktopDeployment.Os.Macos.MakeRelease do
 
     File.mkdir_p!(bindir)
 
-    content = Tooling.eval_eex(Package.toolpath("rel/macosx/InfoPlist.strings.eex"), rel, pkg)
+    content = Tooling.eval_eex(Tooling.toolpath("rel/macosx/InfoPlist.strings.eex"), rel, pkg)
     utf8bom = :unicode.encoding_to_bom(:utf8)
 
     for lang <- ["en", "Base"] do
@@ -38,10 +38,10 @@ defmodule DesktopDeployment.Os.Macos.MakeRelease do
       File.write!(Path.join(langdir, "InfoPlist.strings"), utf8bom <> content)
     end
 
-    content = Tooling.eval_eex(Package.toolpath("rel/macosx/Info.plist.eex"), rel, pkg)
+    content = Tooling.eval_eex(Tooling.toolpath("rel/macosx/Info.plist.eex"), rel, pkg)
     File.write!(Path.join(contents, "Info.plist"), content)
     File.write!(Path.join(contents, "PkgInfo"), "APPL????")
-    content_run = Tooling.eval_eex(Package.toolpath("rel/linux/run.eex"), rel, pkg)
+    content_run = Tooling.eval_eex(Tooling.toolpath("rel/linux/run.eex"), rel, pkg)
     File.write!(Path.join(bindir, "run"), content_run)
     File.chmod!(Path.join(bindir, "run"), 0o755)
 
@@ -102,7 +102,7 @@ defmodule DesktopDeployment.Os.Macos.MakeRelease do
       end)
     end
 
-    developer_id = Package.MacOS.find_developer_id()
+    developer_id = DesktopDeployment.Os.Macos.Common.find_developer_id()
 
     if developer_id != nil do
       codesign(root)
@@ -163,7 +163,7 @@ defmodule DesktopDeployment.Os.Macos.MakeRelease do
     # Adding styling
     background_dir = Path.join(volume, ".background")
     File.mkdir(background_dir)
-    Tooling.cp!(Package.toolpath("rel/macosx/background.png"), background_dir)
+    Tooling.cp!(Tooling.toolpath("rel/macosx/background.png"), background_dir)
 
     # Future: auto generate proper installer icon
     # https://0day.work/parsing-the-ds_store-file-format/
@@ -202,7 +202,7 @@ defmodule DesktopDeployment.Os.Macos.MakeRelease do
     File.rename!(cef, Path.join(frameworks, "Chromium Embedded Framework.framework"))
 
     # Collecting plist content
-    filename = Package.toolpath("rel/macosx/Info.plist.helper.eex")
+    filename = Tooling.toolpath("rel/macosx/Info.plist.helper.eex")
     app_name = pkg.priv.executable_name
     helper_name = "#{app_name} Helper"
     executable_name = "#{app_name} Helper"
@@ -235,7 +235,7 @@ defmodule DesktopDeployment.Os.Macos.MakeRelease do
 
     File.rename!(webview, Path.join(helper_contents, "MacOS/#{executable_name}"))
 
-    icon_path = Package.toolpath("rel/macosx/icons.icns")
+    icon_path = Tooling.toolpath("rel/macosx/icons.icns")
     File.cp!(icon_path, Path.join(helper_contents, "Resources/icons.icns"))
 
     for name <- ~w(Alerts GPU Plugin Renderer) do
@@ -346,60 +346,6 @@ defmodule DesktopDeployment.Os.Macos.MakeRelease do
     |> Enum.filter(&is_binary/1)
   end
 
-  @uid_attribute {0, 9, 2342, 19_200_300, 100, 1, 1}
-  @friendly_attribute {2, 5, 4, 3}
-  def locate_uid(pem_filename) do
-    cert = File.read!(pem_filename)
-    cert_der = List.keyfind!(:public_key.pem_decode(cert), :Certificate, 0)
-
-    :public_key.der_decode(:Certificate, elem(cert_der, 1))
-    |> scan()
-  end
-
-  def find_developer_id() do
-    cond do
-      System.get_env("DEVELOPER_ID") != nil ->
-        System.get_env("DEVELOPER_ID")
-
-      System.get_env("MACOS_DEVELOPER_ID") != nil ->
-        System.get_env("MACOS_DEVELOPER_ID")
-
-      System.get_env("MACOS_PEM") != nil ->
-        file = "tmp.pem"
-        File.write!(file, System.get_env("MACOS_PEM"))
-        uids = locate_uid(file) || raise "Could not locate UID in PEM"
-        uid = maybe_import_pem(file, uids)
-
-        # Caching for next call
-        if uid != nil do
-          System.put_env("DEVELOPER_ID", uid)
-          uid
-        end
-
-      true ->
-        nil
-    end
-  end
-
-  defp do_find_developer_id(uids) do
-    ids = find_identity()
-    Enum.find(uids, fn uid -> String.contains?(ids, uid) end)
-  end
-
-  def maybe_import_pem(file, uids) do
-    with nil <- do_find_developer_id(uids) do
-      Tooling.cmd("security", ["import", file, "-k", keychain(), "-A"])
-
-      with nil <- do_find_developer_id(uids) do
-        raise "Failed to import PEM for uid #{inspect(uids)}"
-      end
-    end
-  end
-
-  defp find_identity() do
-    Tooling.cmd("security", ["find-identity", "-v", keychain()])
-  end
-
   @keychain_key {__MODULE__, :keychain}
   defp keychain() do
     keychain = :persistent_term.get(@keychain_key, nil)
@@ -446,7 +392,7 @@ defmodule DesktopDeployment.Os.Macos.MakeRelease do
     %NtzCreds{
       username: System.get_env("MACOS_NOTARIZATION_USER"),
       password: System.get_env("MACOS_NOTARIZATION_PASSWORD"),
-      team_uid: find_developer_id()
+      team_uid: DesktopDeployment.Os.Macos.Common.find_developer_id()
     }
   end
 
@@ -472,21 +418,6 @@ defmodule DesktopDeployment.Os.Macos.MakeRelease do
     ])
   end
 
-  defp scan({:AttributeTypeAndValue, @friendly_attribute, friendly}) do
-    case Regex.scan(~r/\(([^)]+)\)$/, friendly) do
-      [[_full, uid]] -> [uid]
-      _ -> []
-    end
-  end
-
-  defp scan({:AttributeTypeAndValue, @uid_attribute, uid}) do
-    [String.trim(uid)]
-  end
-
-  defp scan([head | tail]), do: scan(head) ++ scan(tail)
-  defp scan(tuple) when is_tuple(tuple), do: scan(Tuple.to_list(tuple))
-  defp scan(_), do: []
-
   def find_binaries(root) do
     libs =
       Tooling.wildcard(root, "**/*.so") ++
@@ -509,7 +440,7 @@ defmodule DesktopDeployment.Os.Macos.MakeRelease do
     # Codesign all executable code in the package with timestamp and
     # hardened runtime. This is a prerequisite for notarization.
     to_sign = find_binaries(root)
-    entitlements = Package.toolpath("rel/macosx/app.entitlements")
+    entitlements = Tooling.toolpath("rel/macosx/app.entitlements")
     File.write!("codesign.log", Enum.join(to_sign, "\n"))
 
     # If there are any Frameworks embedded we have to sign them first
@@ -536,7 +467,7 @@ defmodule DesktopDeployment.Os.Macos.MakeRelease do
         keychain(),
         "-f",
         "-s",
-        find_developer_id(),
+        DesktopDeployment.Os.Macos.Common.find_developer_id(),
         "--timestamp",
         "--options=runtime"
       ] ++ add_codesign_args(opts) ++ List.wrap(objects)
