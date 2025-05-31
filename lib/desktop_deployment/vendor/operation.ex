@@ -19,6 +19,12 @@ defmodule DesktopDeployment.Operation do
 
   def run(err, _key, _f), do: err
 
+  def log_error(result, msg \\ "Error") do
+    if elem(result, 0) == :error do
+      IO.inspect(result, label: msg)
+    end
+  end
+
   # Helpers
 
   defp run_action(f, _ctx) when is_function(f, 0), do: f.()

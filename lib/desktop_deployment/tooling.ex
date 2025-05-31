@@ -217,4 +217,19 @@ defmodule DesktopDeployment.Tooling do
 
     File.write!(filename, body)
   end
+
+  def toolpath(name) do
+    if File.exists?(name) do
+      Path.absname(name)
+    else
+      base = Mix.Project.deps_paths()[:desktop_deployment]
+      path = Path.absname(Path.join(base, name))
+
+      if not File.exists?(path) do
+        raise "Tool #{name} not found"
+      end
+
+      path
+    end
+  end
 end
