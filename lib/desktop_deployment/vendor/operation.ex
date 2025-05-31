@@ -2,7 +2,10 @@ defmodule DesktopDeployment.Operation do
   defmacro __using__(_) do
     quote do
       alias DesktopDeployment.Result
+      alias DesktopDeployment.Package
+      alias DesktopDeployment.Tooling
       alias DesktopDeployment.Operation
+      require Logger
       import DesktopDeployment.Operation, only: [run: 3]
     end
   end

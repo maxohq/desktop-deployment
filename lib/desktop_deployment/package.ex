@@ -161,7 +161,7 @@ defmodule DesktopDeployment.Package do
 
   def create_installer(%Package{} = pkg) do
     case Tooling.os() do
-      MacOS -> Package.MacOS.release(pkg)
+      Macos -> Package.MacOS.release(pkg)
       Linux -> linux_release(pkg)
       Windows -> windows_release(pkg)
     end

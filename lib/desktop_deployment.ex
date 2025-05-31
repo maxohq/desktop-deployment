@@ -17,11 +17,10 @@ defmodule DesktopDeployment do
       System.halt(1)
     end
 
-    package =
-      prepare_release(rel)
-      |> package()
-      |> Package.copy_extra_files()
-      |> Package.create_installer()
+    package = prepare_release(rel) |> package()
+
+    {:ok, package} = DesktopDeployment.Os.CopyFiles.call(package)
+    {:ok, package} = DesktopDeployment.Os.MakeRelease.call(package)
 
     IO.puts("")
     IO.puts("Thanks for using elixir-desktop")

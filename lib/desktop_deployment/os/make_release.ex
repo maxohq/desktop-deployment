@@ -1,11 +1,11 @@
 defmodule DesktopDeployment.Os.MakeRelease do
   alias DesktopDeployment.Tooling
 
-  def call(opts) do
+  def call(pkg) do
     case Tooling.os() do
-      Linux -> DesktopDeployment.Os.Linux.MakeRelease.call(opts)
-      Windows -> DesktopDeployment.Os.Windows.MakeRelease.call(opts)
-      Macos -> DesktopDeployment.Os.Macos.MakeRelease.call(opts)
+      Linux -> DesktopDeployment.Os.Linux.MakeRelease.call(pkg)
+      Windows -> DesktopDeployment.Os.Windows.MakeRelease.call(pkg)
+      Macos -> DesktopDeployment.Os.Macos.MakeRelease.call(pkg)
     end
   end
 end

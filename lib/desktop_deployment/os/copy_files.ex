@@ -5,12 +5,12 @@ defmodule DesktopDeployment.Os.CopyFiles do
 
   def call(package) do
     Operation.new()
-    |> Operation.run(:common_files, fn -> copy_extra_files(package) end)
+    |> Operation.run(:common_files, fn -> copy_common_files(package) end)
     |> Operation.run(:unix_files, fn ->
       copy_unix_files(package, Tooling.os() in [Macos, Linux])
     end)
     |> Operation.run(:os_specific_files, fn ctx ->
-      copy_os_specific_files(Tooling.os(), ctx.copy_unix_files)
+      copy_os_specific_files(Tooling.os(), ctx.unix_files)
     end)
     |> respond()
   end
@@ -27,17 +27,19 @@ defmodule DesktopDeployment.Os.CopyFiles do
     end
   end
 
-  defp copy_extra_files(%Package{release: %Mix.Release{path: rel_path, version: vsn} = rel} = pkg) do
+  defp copy_common_files(
+         %Package{release: %Mix.Release{path: rel_path, version: vsn} = rel} = pkg
+       ) do
     vm_args = Tooling.toolpath("rel/vm.args.eex")
     content = Tooling.eval_eex(vm_args, rel, pkg)
     vm_args_out = Path.join([rel_path, "releases", vsn, "vm.args"])
     File.write!(vm_args_out, content)
 
-    Result.ok(nil)
+    Result.ok(pkg)
   end
 
-  defp copy_unix_files(_, false) do
-    Result.ok(nil)
+  defp copy_unix_files(pkg, false) do
+    Result.ok(pkg)
   end
 
   defp copy_unix_files(%Package{release: %Mix.Release{} = rel} = pkg, true) do
