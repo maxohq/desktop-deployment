@@ -1,0 +1,4 @@
+%{
+  "castore": {:hex, :castore, "1.0.14", "4582dd7d630b48cf5e1ca8d3d42494db51e406b7ba704e81fbd401866366896a", [:mix], [], "hexpm", "7bc1b65249d31701393edaaac18ec8398d8974d52c647b7904d01b964137b9f4"},
+  "libpe": {:hex, :libpe, "1.2.3", "b0669eabc59470a63c5d2d83fe405d43e0f0de4068c5e21511e16e6948d818ee", [:mix], [], "hexpm", "494dc8082917ea645031b5ade1d8cc038548bf3d39066b2d87bebbe1bcde1c4a"},
+}
