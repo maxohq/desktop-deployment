@@ -82,7 +82,8 @@ defmodule DesktopDeployment.Os.Windows.CopyFiles do
     pkg = %{pkg | priv: Map.put(pkg.priv, :executable_name, pkg.name <> ".exe")}
 
     redistributables = %{
-      "MicrosoftEdgeWebview2Setup.exe" => "https://go.microsoft.com/fwlink/p/?LinkId=2124703",
+      "MicrosoftEdgeWebview2Setup.exe" =>
+        "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/815d89c2-508a-4010-89af-4a6770e178d9/MicrosoftEdgeWebview2Setup.exe",
       "vcredist_x64.exe" => "https://aka.ms/vs/17/release/vc_redist.x64.exe"
     }
 
