@@ -208,12 +208,7 @@ defmodule DesktopDeployment.Tooling do
   end
 
   def download_file(filename, url) do
-    Mix.Shell.IO.info("Downloading #{filename} from #{url}")
-    {:ok, _} = Application.ensure_all_started(:httpoison)
-
-    %HTTPoison.Response{body: body, status_code: 200} =
-      HTTPoison.get!(url, [], follow_redirect: true)
-
+    body = DesktopDeployment.HTTP.fetch_body!(url)
     File.write!(filename, body)
   end
 

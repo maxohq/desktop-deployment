@@ -37,11 +37,8 @@ defmodule DesktopDeployment.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      # Credo
-      {:httpoison, "~> 2.0", runtime: false},
-      {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
       {:libpe, "~> 1.2"},
-      {:poison, "~> 3.0"}
+      {:castore, ">= 0.0.0"}
     ]
   end
 end
